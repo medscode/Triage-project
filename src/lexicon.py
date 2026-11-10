@@ -6,7 +6,7 @@ TYPES = {
     "medical": ["सीने", "दर्द", "साँस", "सांस", "बेहोश", "दिल का दौरा", "एम्बुलेंस", "chest", "pain", "breathing",
                 "unconscious", "heart", "ambulance"],
     "accident": ["टक्कर", "एक्सीडेंट", "दुर्घटना", "बाइक", "ट्रक", "accident", "collision", "truck", "bike", "crash"],
-    "dispute": ["पार्किंग", "पड़ोसी", "गाड़ी", "गेट", "झगड़ा", "parking", "neighbour", "neighbor"],
+    "dispute": ["पार्किंग", "पड़ोसी", "गाड़ी", "गेट", "gate", "झगड़ा", "parking", "neighbour", "neighbor"],
 }
 
 # life-threat evidence -> points. Urgency comes ONLY from this, never from tone / volume / exclamation marks.
@@ -26,9 +26,22 @@ CRITICAL_AT, HIGH_AT = 8, 4   # score >= 8 critical, >= 4 high, else low
 
 # FICTIONAL places only (so no real-world location claims). canonical name -> spoken/written variants
 GAZETTEER = {
-    "Neelkamal Colony": ["Neelkamal Colony", "नीलकमल कॉलोनी", "नीलकमल कालोनी"],
-    "Madhuvan Tower": ["Madhuvan Tower", "मधुवन टावर", "मधुवन टॉवर"],
-    "Surajpur Highway": ["Surajpur Highway", "सूरजपुर हाईवे", "सूरजपुर हाइवे"],
-    "Hanuman Dhaba": ["Hanuman Dhaba", "हनुमान ढाबा", "हनुमान ढाबे"],
-    "Lotus Apartments": ["Lotus Apartments", "लोटस अपार्टमेंट", "लोटस अपार्टमेंट्स"],
+    "Neelkamal Colony": [
+        "Neelkamal Colony", "नीलकमल कॉलोनी", "नीलकमल कालोनी", "नीलकमल colony",
+        "नील कमल कॉलोनी", "नील कमल", "नीलकमल", "नीलकमाल कॉलोनी", "नीलकमाल", "new kamal colony"
+    ],
+    "Madhuvan Tower": [
+        "Madhuvan Tower", "मधुवन टावर", "मधुवन टॉवर", "मधुबन tower", "मधुवन tower",
+        "मधुबन", "मधुवन", "madhuhan tower", "madhuvan tower", "madhuvan"
+    ],
+    "Surajpur Highway": [
+        "Surajpur Highway", "सूरजपुर हाईवे", "सूरजपुर हाइवे", "सूरजपुर highway", "सूरजपुर", "सुरजपुर", "सुराजपुर", "surajpur"
+    ],
+    "Hanuman Dhaba": [
+        "Hanuman Dhaba", "हनुमान ढाबा", "हनुमान ढाबे", "हनुमान dhaba"
+    ],
+    "Lotus Apartments": [
+        "Lotus Apartments", "लोटस अपार्टमेंट", "लोटस अपार्टमेंट्स", "लोटस apartment", "lotus apartments",
+        "notice apartment"
+    ],
 }
