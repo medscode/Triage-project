@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Call Triage – SYNTHETIC CALLS</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#14181f;--mut:#667085;--bd:#e3e6eb;--crit:#d92d20;--high:#dc6803;--low:#12805c}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1318;--card:#171c23;--tx:#eef1f5;--mut:#98a2b3;--bd:#2a313b}}
+body{margin:0;font:15px system-ui,sans-serif;background:var(--bg);color:var(--tx);padding:20px}
+header{display:flex;gap:12px;align-items:center;flex-wrap:wrap}h1{font-size:20px;margin:0}
+.badge{background:var(--crit);color:#fff;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-top:14px;overflow-x:auto}
+table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--bd);vertical-align:top}
+th{color:var(--mut);font-size:12px;text-transform:uppercase}
+.pill{padding:2px 9px;border-radius:99px;color:#fff;font-weight:700;font-size:12px}
+.critical{background:var(--crit)}.high{background:var(--high)}.low{background:var(--low)}
+.flag{color:var(--high);font-size:12px;display:block}.mut{color:var(--mut);font-size:12px}
+input[type=range]{width:260px;vertical-align:middle}audio{height:30px;width:200px}
+</style></head><body>
+<header><h1>Emergency Call Triage – dispatcher queue</h1><span class="badge">SYNTHETIC CALLS ONLY</span>
+<span class="mut" id="mode"></span></header>
+<div class="card"><b>Noise level</b>
+<input type="range" id="sl" min="0" max="2" value="0"> <b id="lv"></b>
+<span class="mut"> (0 = clean phone line · 10 dB SNR · 0 dB SNR)</span></div>
+<div class="card"><table><thead><tr><th>#</th><th>Call</th><th>Caller tone</th><th>Type</th><th>Location</th>
+<th>Score</th><th>Urgency</th><th>Transcript</th><th>Audio</th></tr></thead><tbody id="q"></tbody></table></div>
+<div class="card"><b>Accuracy by noise level</b> <span class="mut" id="note"></span><canvas id="ch" height="110"></canvas></div>
+<div class="card"><b>Held-out calls</b> <span class="mut">(written after the rules were frozen – report honestly)</span>
+<table><thead><tr><th>Level</th><th>n</th><th>Type</th><th>Urgency</th><th>Location</th><th>Mean WER</th></tr></thead><tbody id="ho"></tbody></table></div>
+<script>
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pct=v=>v==null?"n/a":Math.round(v*100)+"%";
+let R,chart;
+fetch("../results/results.json").then(r=>r.json()).then(d=>{R=d;
+ document.getElementById("mode").textContent="source: "+d.mode+(d.mode.startsWith("oracle")?" (NOT real STT – layout/rules test only)":"");
+ sl.oninput=render;render();drawChart();drawHeld();
+}).catch(()=>{document.body.insertAdjacentHTML("beforeend","<p>No results.json yet. Run: python run_all.py --oracle</p>")});
+function render(){const lvl=R.levels[sl.value];lv.textContent=lvl;
+ const rows=R.calls.filter(c=>c.set==="dev").map(c=>({c,e:c.by_level[lvl]})).sort((a,b)=>b.e.urgency_score-a.e.urgency_score);
+ q.innerHTML=rows.map(({c,e},i)=>`<tr><td>${i+1}</td><td><b>${esc(c.label)}</b></td><td>${esc(c.tone)}</td>
+ <td>${esc(e.type)}</td><td>${e.locations.length?esc(e.locations.join(", ")):'<span class="flag">⚠ ask caller</span>'}</td>
+ <td>${e.urgency_score}</td><td><span class="pill ${e.urgency}">${e.urgency}</span>${e.flags.map(f=>`<span class="flag">${esc(f)}</span>`).join("")}</td>
+ <td class="mut">${esc(e.transcript)}</td><td><audio controls preload="none" src="../${esc(e.audio)}"></audio></td></tr>`).join("");}
+function drawChart(){const m=R.metrics.dev,L=R.levels,ds=(k,l)=>({label:l,data:L.map(x=>m[x]?m[x][k]*100:null)});
+ if(chart)chart.destroy();
+ chart=new Chart(ch,{type:"bar",data:{labels:L,datasets:[ds("type_acc","Type %"),ds("urgency_acc","Urgency %"),ds("location_acc","Location %")]},
+ options:{scales:{y:{min:0,max:100}}}});
+ note.textContent="(dev set, n="+(m[L[0]]||{}).n+")";}
+function drawHeld(){ho.innerHTML=R.levels.map(l=>{const m=R.metrics.heldout[l];return m?`<tr><td>${l}</td><td>${m.n}</td><td>${pct(m.type_acc)}</td><td>${pct(m.urgency_acc)}</td><td>${pct(m.location_acc)}</td><td>${pct(m.mean_wer)}</td></tr>`:""}).join("")}
+</script></body></html>
