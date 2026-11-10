@@ -1,8 +1,13 @@
-"""Add white noise at a target SNR, then squash to phone quality (8 kHz mono, 300-3400 Hz) with ffmpeg."""
+"""Add white noise at a target SNR, then squash to phone quality (8 kHz mono, 300-3400 Hz) with ffmpeg or scipy."""
 import shutil
 import subprocess
 import wave
 import numpy as np
+
+try:
+    import scipy.signal as signal
+except ImportError:
+    signal = None
 
 
 def read_wav(path):
@@ -14,7 +19,9 @@ def read_wav(path):
 def write_wav(path, x, rate):
     x = np.clip(x, -32768, 32767).astype(np.int16)
     with wave.open(str(path), "wb") as w:
-        w.setnchannels(1); w.setsampwidth(2); w.setframerate(rate)
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(rate)
         w.writeframes(x.tobytes())
 
 
@@ -26,7 +33,25 @@ def add_noise(x, snr_db, seed=0):
 
 
 def phone_filter(src, dst):
-    if not shutil.which("ffmpeg"):
-        raise SystemExit("ffmpeg not found. Install it (e.g. apt install ffmpeg / brew install ffmpeg).")
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(src), "-ar", "8000", "-ac", "1",
-                    "-af", "highpass=f=300,lowpass=f=3400", str(dst)], check=True)
+    if shutil.which("ffmpeg"):
+        subprocess.run(
+            ["ffmpeg", "-y", "-loglevel", "error", "-i", str(src), "-ar", "8000", "-ac", "1",
+             "-af", "highpass=f=300,lowpass=f=3400", str(dst)],
+            check=True
+        )
+        return
+    if signal is not None:
+        x, rate = read_wav(src)
+        target_rate = 8000
+        if rate != target_rate:
+            gcd = int(np.gcd(rate, target_rate))
+            up = target_rate // gcd
+            down = rate // gcd
+            x = signal.resample_poly(x, up, down)
+            rate = target_rate
+        # Bandpass filter 300-3400 Hz at 8000 Hz
+        sos = signal.butter(4, [300, 3400], btype="bandpass", fs=rate, output="sos")
+        x_filtered = signal.sosfilt(sos, x)
+        write_wav(dst, x_filtered, rate)
+        return
+    raise SystemExit("Neither ffmpeg nor scipy is available to filter audio.")
